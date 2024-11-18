@@ -49,8 +49,9 @@ class EventNotificationsView(HomeAssistantView):
         try:
             _LOGGER.debug("--- Incoming event notification ---")
             _LOGGER.debug("Source: %s", request.remote)
-            self.isapi = self.get_isapi_instance(request.remote)
             xml = await self.parse_event_request(request)
+            alert_raw = ISAPI.parse_event_notification(xml)
+            self.isapi = self.get_isapi_instance(request.remote, alert_raw)
             _LOGGER.debug("alert info: %s", xml)
             self.trigger_sensor(xml)
         except Exception as ex:  # pylint: disable=broad-except
@@ -59,7 +60,7 @@ class EventNotificationsView(HomeAssistantView):
         response = web.Response(status=HTTPStatus.OK, content_type=CONTENT_TYPE_TEXT_PLAIN)
         return response
 
-    def get_isapi_instance(self, device_ip) -> ISAPI:
+    def get_isapi_instance(self, device_ip, alert: AlertInfo) -> ISAPI:
         """Get isapi instance for device sending alert."""
         integration_entries = self.hass.config_entries.async_entries(DOMAIN)
         instances_hosts = []
@@ -67,17 +68,34 @@ class EventNotificationsView(HomeAssistantView):
         if len(integration_entries) == 1:
             entry = integration_entries[0]
         else:
+            # Search device by mac_address
             for item in integration_entries:
-                url = item.data.get(CONF_HOST)
-                instances_hosts.append(url)
                 if item.disabled_by:
                     continue
-                if self.get_ip(urlparse(url).hostname) == device_ip:
+
+                item_isapi = self.hass.data[DOMAIN][item.entry_id][DATA_ISAPI]
+                item_mac_address = item_isapi.device_info.mac_address
+
+                if item_mac_address == alert.mac:
+                    _LOGGER.debug("Item matched with mac_address: %s", item_mac_address)
                     entry = item
                     break
 
-        if not entry:
-            raise ValueError(f"Cannot find ISAPI instance for device {device_ip} in {instances_hosts}")
+            if not entry:
+                # Search device by ip_address
+                for item in integration_entries:
+                    if item.disabled_by:
+                        continue
+
+                    url = item.data.get(CONF_HOST)
+                    instances_hosts.append(url)
+
+                    if self.get_ip(urlparse(url).hostname) == device_ip:
+                        entry = item
+                        break
+
+                if not entry:
+                    raise ValueError(f"Cannot find ISAPI instance for device {device_ip} in {instances_hosts}")
 
         config = self.hass.data[DOMAIN][entry.entry_id]
         return config.get(DATA_ISAPI)
