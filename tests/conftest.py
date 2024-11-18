@@ -4,7 +4,13 @@ import json
 import pytest
 import respx
 import xmltodict
-from custom_components.hikvision_next.const import DOMAIN, DATA_SET_ALARM_SERVER, DATA_ALARM_SERVER_HOST
+from custom_components.hikvision_next.const import (
+    DOMAIN,
+    DATA_SET_ALARM_SERVER,
+    DATA_ALARM_SERVER_HOST,
+    SET_RTSP_PORT,
+    RTSP_PORT,
+)
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.hikvision_next.isapi import ISAPI
@@ -17,11 +23,19 @@ TEST_CLIENT = {
     CONF_USERNAME: "u1",
     CONF_PASSWORD: "***",
 }
-TEST_CONFIG = {**TEST_CLIENT, DATA_SET_ALARM_SERVER: False, DATA_ALARM_SERVER_HOST: ""}
+TEST_CONFIG = {
+    **TEST_CLIENT,
+    DATA_SET_ALARM_SERVER: False,
+    DATA_ALARM_SERVER_HOST: "",
+    SET_RTSP_PORT: False,
+    RTSP_PORT: 554,
+}
 TEST_CONFIG_WITH_ALARM_SERVER = {
     **TEST_CLIENT,
     DATA_SET_ALARM_SERVER: True,
     DATA_ALARM_SERVER_HOST: "http://1.0.0.11:8123",
+    SET_RTSP_PORT: False,
+    RTSP_PORT: 554,
 }
 
 

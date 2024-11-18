@@ -16,7 +16,7 @@ from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.httpx_client import get_async_client
 
-from .const import DATA_ALARM_SERVER_HOST, DATA_SET_ALARM_SERVER, DOMAIN
+from .const import DATA_ALARM_SERVER_HOST, DATA_SET_ALARM_SERVER, DOMAIN, RTSP_PORT, SET_RTSP_PORT
 from .isapi import ISAPI
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,6 +37,8 @@ class HikvisionFlowHandler(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, "http://")): str,
                 vol.Required(CONF_USERNAME, default=user_input.get(CONF_USERNAME, "")): str,
                 vol.Required(CONF_PASSWORD, default=user_input.get(CONF_PASSWORD, "")): str,
+                vol.Required(SET_RTSP_PORT, default=user_input.get(SET_RTSP_PORT, False)): bool,
+                vol.Optional(RTSP_PORT, default=user_input.get(RTSP_PORT, 554)): int,
                 vol.Required(
                     DATA_SET_ALARM_SERVER,
                     default=user_input.get(DATA_SET_ALARM_SERVER, True),
@@ -58,14 +60,20 @@ class HikvisionFlowHandler(ConfigFlow, domain=DOMAIN):
                 host = user_input[CONF_HOST].rstrip("/")
                 username = user_input[CONF_USERNAME]
                 password = user_input[CONF_PASSWORD]
+                set_rtsp_port = user_input[SET_RTSP_PORT]
+                rtsp_port = user_input[RTSP_PORT]
                 user_input_validated = {
                     **user_input,
                     CONF_HOST: host,
                 }
 
-                session = get_async_client(self.hass)
+                session = get_async_client(self.hass, False)
                 isapi = ISAPI(host, username, password, session)
                 await isapi.get_device_info()
+
+                # if user chose to force RTSP PORT, so we replace the RSTP PORT of the device by the PORT setted by user
+                if set_rtsp_port:
+                    isapi.device_info.rtsp_port = rtsp_port
 
                 if self._reauth_entry:
                     self.hass.config_entries.async_update_entry(self._reauth_entry, data=user_input_validated)

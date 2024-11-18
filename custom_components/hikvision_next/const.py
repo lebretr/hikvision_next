@@ -11,6 +11,9 @@ DATA_ALARM_SERVER_HOST: Final = "alarm_server"
 DATA_ISAPI = "isapi"
 ALARM_SERVER_PATH = "/api/hikvision"
 
+SET_RTSP_PORT: Final = "set_rtsp_port"
+RTSP_PORT: Final = "rtsp_port"
+
 EVENTS_COORDINATOR: Final = "events"
 SECONDARY_COORDINATOR: Final = "secondary"
 HOLIDAY_MODE = "holiday_mode"
@@ -95,7 +98,7 @@ EVENTS = {
         "slug": "WLAlarm/PIR",
         "direct_node": "PIRAlarm",
         "device_class": BinarySensorDeviceClass.MOTION,
-    }
+    },
 }
 
 EVENTS_ALTERNATE_ID = {

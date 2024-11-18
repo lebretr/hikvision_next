@@ -29,6 +29,8 @@ from .const import (
     DOMAIN,
     EVENTS_COORDINATOR,
     SECONDARY_COORDINATOR,
+    RTSP_PORT,
+    SET_RTSP_PORT,
 )
 from .coordinator import EventsCoordinator, SecondaryCoordinator
 from .isapi import ISAPI
@@ -61,11 +63,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     host = entry.data[CONF_HOST]
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
-    session = get_async_client(hass)
+
+    set_rtsp_port = False
+    try:
+        set_rtsp_port = entry.data[SET_RTSP_PORT]
+    except Exception as ex:
+        _LOGGER.debug("SET_RTSP_PORT not defined due to a old config for: %s, %s", host, ex)
+
+    rtsp_port = None
+    try:
+        rtsp_port = str(int(entry.data[RTSP_PORT]))
+    except Exception as ex:
+        _LOGGER.debug("RTSP_PORT not defined due to a old config for: %s, %s", host, ex)
+
+    session = get_async_client(hass, False)
     isapi = ISAPI(host, username, password, session)
     isapi.pending_initialization = True
     try:
         await isapi.get_hardware_info()
+
+        # if user chose to force RTSP PORT, so we replace the RTSP PORT of the device by the PORT setted by user
+        if set_rtsp_port and rtsp_port is not None:
+            isapi.device_info.rtsp_port = rtsp_port
+
         await isapi.get_cameras()
         device_info = isapi.hass_device_info()
         device_registry = dr.async_get(hass)

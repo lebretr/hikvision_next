@@ -10,6 +10,8 @@
           "host": "URL",
           "password": "Password",
           "username": "Username",
+          "set_rtsp_port": "Force RTSP port (if accessing the NVR/Camera through a router with port forwarding)",
+          "rtsp_port": "RTSP Port of NVR or Camera",
           "set_alarm_server": "Set notifications host using following address:",
           "alarm_server": "Home Assistant address accessible by Hikvison device"
         }
@@ -113,6 +115,9 @@
       },
       "notifications_host_url": {
         "name": "Notifications Host Path"
+      },
+      "notifications_host_hostname": {
+        "name": "Notifications Host Hostname"
       }
     },
     "image": {
