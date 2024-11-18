@@ -20,6 +20,7 @@ from .isapi import StorageInfo
 NOTIFICATION_HOST_KEYS = {
     "protocolType": "protocol_type",
     "ipAddress": "ip_address",
+    "hostName": "hostname",
     "portNo": "port_no",
     "url": "url",
 }
@@ -59,9 +60,7 @@ class AlarmServerSensor(CoordinatorEntity, SensorEntity):
         """Initialize."""
         super().__init__(coordinator)
         isapi = coordinator.isapi
-        self._attr_unique_id = (
-            f"{isapi.device_info.serial_no}_{DATA_ALARM_SERVER_HOST}_{key}"
-        )
+        self._attr_unique_id = f"{isapi.device_info.serial_no}_{DATA_ALARM_SERVER_HOST}_{key}"
         self.entity_id = ENTITY_ID_FORMAT.format(self.unique_id)
         self._attr_device_info = isapi.hass_device_info()
         self._attr_translation_key = f"notifications_host_{NOTIFICATION_HOST_KEYS[key]}"

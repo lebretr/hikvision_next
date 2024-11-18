@@ -17,6 +17,8 @@ import httpx
 from httpx import HTTPStatusError, TimeoutException
 import xmltodict
 
+import ipaddress
+
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
@@ -54,6 +56,7 @@ class AlarmServer:
     portNo: int  # pylint: disable=invalid-name
     url: str  # pylint: disable=invalid-name
     protocolType: str  # pylint: disable=invalid-name
+    hostName: str  # pylint: disable=invalid-name
 
 
 @dataclass
@@ -751,6 +754,7 @@ class ISAPI:
             portNo=int(host.get("portNo")),
             url=host.get("url"),
             protocolType=host.get("protocolType"),
+            hostName=host.get("hostName"),
         )
 
     async def set_alarm_server(self, base_url: str, path: str) -> None:
@@ -761,19 +765,49 @@ class ISAPI:
         if not data:
             return
         host = self._get_event_notification_host(data)
+
+        ipaddress_hostname = ""
+        if host.get("addressingFormatType") == "hostname":
+            ipaddress_hostname = host.get("ipAddress")
+            _LOGGER.debug("alarm_server url is an ip: %s", ipaddress_hostname)
+        else:
+            ipaddress_hostname = host.get("hostname")
+            _LOGGER.debug("alarm_server url is a hostname: %s", ipaddress_hostname)
+
+        address_scheme_port_upper = address.scheme.upper()
+
+        address_port = address.port
+        try:
+            int(address_port)
+        except Exception:
+            if address_scheme_port_upper == "HTTPS":
+                address_port = 443
+            else:
+                address_port = 80
+
         if (
             host["protocolType"] == address.scheme.upper()
-            and host.get("ipAddress") == address.hostname
-            and host.get("portNo") == str(address.port)
+            and ipaddress_hostname == address.hostname
+            and host.get("portNo") == str(address_port)
             and host["url"] == path
         ):
             return
         host["url"] = path
         host["protocolType"] = address.scheme.upper()
         host["parameterFormatType"] = "XML"
-        host["addressingFormatType"] = "ipaddress"
-        host["ipAddress"] = address.hostname
-        host["portNo"] = address.port
+
+        # if address.hostname is an ip
+        try:
+            ipaddress.ip_address(address.hostname)
+
+            host["addressingFormatType"] = "ipaddress"
+            host["ipAddress"] = address.hostname
+        except ValueError:
+            _LOGGER.debug("address.hostname is not an ip! %s", address.hostname)
+            host["addressingFormatType"] = "hostname"
+            host["hostName"] = address.hostname
+
+        host["portNo"] = address_port
         host["httpAuthenticationMethod"] = "none"
 
         xml = xmltodict.unparse(data)
