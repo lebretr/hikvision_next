@@ -80,6 +80,26 @@ async def test_ipc_intrusion_detection_alert(
     assert sensor.state == STATE_ON
 
 
+@pytest.mark.parametrize("init_integration", ["DS-2TD1228-2-QA"], indirect=True)
+async def test_ipc_motion_detection_on_thermometry_channel_alert(
+    hass: HomeAssistant, init_integration: MockConfigEntry,
+) -> None:
+    """Test incoming motion detection event alert on thermometry channel from ip multi channel camera."""
+
+    entity_id = "binary_sensor.ds_2td1228_2_qa_xxxxxxxxxxxxxxxxxx_2_motiondetection"
+
+    assert (sensor := hass.states.get(entity_id))
+    assert sensor.state == STATE_OFF
+
+    view = EventNotificationsView(hass)
+    mock_request = mock_event_notification("ipc_thermometry_motiondetection")
+    response = await view.post(mock_request)
+
+    assert response.status == HTTPStatus.OK
+    assert (sensor := hass.states.get(entity_id))
+    assert sensor.state == STATE_ON
+
+
 @pytest.mark.parametrize("init_integration", ["DS-2CD2146G2-ISU"], indirect=True)
 async def test_field_detection_alert(
     hass: HomeAssistant, init_integration: MockConfigEntry,
@@ -146,9 +166,9 @@ async def test_nvr_and_cam_notification_alert(
     entity_nvr_1_id = "binary_sensor.ds_7608nxi_i0_0p_s0000000000ccrrj00000000wcvu_2_fielddetection"
 
     """ANOTHER CAMERAS OUTSIDE THE NETWORK with macAddress in notification"""
-    entity_cam_1_id = "binary_sensor.ds_2cd2t46g2_isu_sl00000000aawrg00000000_1_1_io"
-    entity_cam_2_id = "binary_sensor.ds_2cd2346g2_isu_sl00000000aawrj00000000_1_1_io"
-    entity_cam_3_id = "binary_sensor.ds_2cd2t86g2_isu_sl00000000aawrae0000000_1_1_io"
+    entity_cam_1_id = "binary_sensor.ds_2cd2t46g2_isu_sl00000000aawrg00000000_1_io"
+    entity_cam_2_id = "binary_sensor.ds_2cd2346g2_isu_sl00000000aawrj00000000_1_io"
+    entity_cam_3_id = "binary_sensor.ds_2cd2t86g2_isu_sl00000000aawrae0000000_1_io"
 
     bus_events = []
 
